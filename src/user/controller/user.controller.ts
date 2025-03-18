@@ -2,7 +2,7 @@
 import { NextFunction, Request, Response } from 'express';
 import ApiResponse from '../../shared/apiResponse';
 import asyncHandler from '../../shared/asyncHandler';
-import pool from '../../shared/dbConnect';
+// import pool from '../../shared/dbConnect';
 import AppError from '../../shared/appError';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
@@ -25,7 +25,7 @@ const signToken = (payload: UserPayLod) => {
 
 export const userSignup = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const client = await pool.connect();
+    const client: any = await new Promise((resolve, reject) => {});
     const { user_name, user_email, user_password, roles } = req.body;
 
     const existsResult = await client.query({
@@ -74,7 +74,7 @@ export const userSignup = asyncHandler(async (req: Request, res: Response, next:
 
 export const userLogin = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const client = await pool.connect();
+    const client: any = await new Promise((resolve, reject) => {});
     const { user_email, user_password } = req.body;
 
     const existsResult = await client.query({
@@ -121,7 +121,7 @@ export const protect = asyncHandler(
     res: Response,
     next: NextFunction,
   ) => {
-    const client = await pool.connect();
+    const client: any = await new Promise((resolve, reject) => {});
     // 1) getting token and check if its there
     let token;
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {

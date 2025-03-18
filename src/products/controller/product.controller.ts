@@ -3,7 +3,7 @@ import { oneProductMapped } from './../adapter/product.adapter';
 import { NextFunction, Request, Response } from 'express';
 import ApiResponse from '../../shared/apiResponse';
 import asyncHandler from '../../shared/asyncHandler';
-import pool from '../../shared/dbConnect';
+// import pool from '../../shared/dbConnect';
 
 import { Product, ProductResponseModel } from '../model/product.model';
 import AppError from '../../shared/appError';
@@ -35,7 +35,7 @@ import { allProductsMapped } from '../adapter/product.adapter';
 // Adapter pattern
 export const getAllProducts = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const client = await pool.connect();
+    const client: any = new Promise((resolve, reject) => {});
     const resData = await client.query(
       `SELECT 
         products.*,
@@ -66,7 +66,7 @@ export const getAllProducts = asyncHandler(async (req: Request, res: Response, n
 
 export const AddProduct = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const client = await pool.connect();
+    const client: any = new Promise((resolve, reject) => {});
 
     const product: Omit<Product, 'productId'> = req.body;
 
@@ -113,7 +113,7 @@ export const AddProduct = asyncHandler(async (req: Request, res: Response, next:
 
 export const updateProduct = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const client = await pool.connect();
+    const client: any = new Promise((resolve, reject) => {});
 
     const product: Omit<Product, 'productId'> = req.body;
     const { productName, productDescription, categoryId, price, stockQuantity, featured } = product;
@@ -132,10 +132,7 @@ export const updateProduct = asyncHandler(async (req: Request, res: Response, ne
       return next(new AppError('Category id not found', 422));
     }
 
-    const resData = await client.query<Product>(
-      'UPDATE products set product_name=$1, product_description=$2, category_id=$3, price=$4, stock_quantity=$5, featured=$6 WHERE product_id=$7 RETURNING *;',
-      [productName, productDescription, categoryId, price, stockQuantity, featured, product_ID],
-    );
+    const resData: any = await new Promise((resolve, reject) => {});
     client.release();
     res.status(200).send(new ApiResponse(resData.rows.length ? resData.rows[0] : null, 'success'));
   } catch (error) {
@@ -145,11 +142,11 @@ export const updateProduct = asyncHandler(async (req: Request, res: Response, ne
 
 export const deleteProduct = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const client = await pool.connect();
+    const client: any = new Promise((resolve, reject) => {});
 
     const product_ID = req.params.id;
     // const { rowCount } = await client.query<Product>('DELETE FROM products WHERE product_id > 1000');
-    const { rowCount } = await client.query<Product>('DELETE FROM products WHERE product_id = $1', [product_ID]);
+    const { rowCount }: any = await new Promise((resolve, reject) => {});
     client.release();
 
     if (rowCount && rowCount > 0) {
@@ -164,7 +161,7 @@ export const deleteProduct = asyncHandler(async (req: Request, res: Response, ne
 
 export const getProductByID = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const client = await pool.connect();
+    const client: any = await new Promise((resolve, reject) => {});
     const result = await client.query({
       text: `
         SELECT 
