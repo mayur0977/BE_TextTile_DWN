@@ -1,17 +1,17 @@
 /* eslint-disable no-unused-vars */
 import { NextFunction, Request, Response } from 'express';
-import ApiResponse from '../../shared/apiResponse';
 import asyncHandler from '../../shared/asyncHandler';
-// import pool from '../../shared/dbConnect';
 import AppError from '../../shared/appError';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+import User from '../model/user.model';
+import { Types } from 'mongoose';
+import { promisify } from 'util';
 
 dotenv.config();
 
 type UserPayLod = {
-  user_id: number;
+  user_id: Types.ObjectId;
   user_name: string;
   user_email: string;
   roles: string[];
@@ -25,48 +25,26 @@ const signToken = (payload: UserPayLod) => {
 
 export const userSignup = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const client: any = await new Promise((resolve, reject) => {});
-    const { user_name, user_email, user_password, roles } = req.body;
-
-    const existsResult = await client.query({
-      text: 'SELECT EXISTS (SELECT * FROM users WHERE user_email = $1)',
-      values: [user_email],
+    const newUser = await User.create({
+      name: req.body.name,
+      email: req.body.email,
+      password: req.body.password,
+      passwordConfirm: req.body.passwordConfirm,
+      role: req.body.role,
     });
+    const userpayLoad: UserPayLod = {
+      user_id: newUser._id,
+      user_name: newUser.name,
+      user_email: newUser.email,
+      roles: [newUser.role],
+    };
+    const token = signToken(userpayLoad);
 
-    if (existsResult.rows[0].exists) {
-      return next(new AppError('Email already exists', 422));
-    }
-
-    const hashedPassword = await bcrypt.hash(user_password, 10); // 10 is the salt rounds
-
-    let rolesCopy = roles;
-    if (!roles) {
-      rolesCopy = ['user'];
-    }
-    const { rows } = await client.query(
-      'INSERT INTO users(user_name,user_email,user_password,roles) VALUES($1,$2,$3,$4) RETURNING *',
-      [user_name, user_email, hashedPassword, rolesCopy],
-    );
-    const token = signToken({
-      user_id: rows[0].user_id,
-      user_name: rows[0].user_name,
-      user_email: rows[0].user_email,
-      roles: rows[0].roles,
+    res.status(201).json({
+      status: 'success',
+      message: 'User register successfully',
+      data: { user: newUser, accessToken: token },
     });
-    res.status(200).send(
-      new ApiResponse(
-        {
-          user: {
-            user_id: rows[0].user_id,
-            user_name: rows[0].user_name,
-            user_email: rows[0].user_email,
-            roles: rows[0].roles,
-          },
-          token,
-        },
-        'success',
-      ),
-    );
   } catch (error) {
     next(error);
   }
@@ -74,88 +52,80 @@ export const userSignup = asyncHandler(async (req: Request, res: Response, next:
 
 export const userLogin = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const client: any = await new Promise((resolve, reject) => {});
-    const { user_email, user_password } = req.body;
+    const { email, password } = req.body;
 
-    const existsResult = await client.query({
-      text: 'SELECT * FROM users WHERE user_email = $1',
-      values: [user_email],
-    });
-
-    if (existsResult.rows[0] && existsResult.rowCount && existsResult.rowCount > 0) {
-      const isMatch = await bcrypt.compare(user_password, existsResult.rows[0].user_password);
-      if (!isMatch) {
-        return next(new AppError('Invalid credentials', 401));
-      }
-      const token = signToken({
-        user_id: existsResult.rows[0].user_id,
-        user_name: existsResult.rows[0].user_name,
-        user_email: existsResult.rows[0].user_email,
-        roles: existsResult.rows[0].roles,
-      });
-      res.status(200).send(
-        new ApiResponse(
-          {
-            user: {
-              user_id: existsResult.rows[0].user_id,
-              user_name: existsResult.rows[0].user_name,
-              user_email: existsResult.rows[0].user_email,
-              roles: existsResult.rows[0].roles,
-            },
-            token,
-          },
-          'success',
-        ),
-      );
-    } else {
-      return next(new AppError('Invalid credentials', 401));
+    // 1) check if email and password exist
+    if (!email || !password) {
+      return next(new AppError('Please provide email and password!', 400));
     }
+
+    // 2) check if user exist
+    const user = await User.findOne({ email }).select('+password');
+
+    if (!user || !(await user.correctPassword(password, user.password))) {
+      return next(new AppError('Incorrect email or password!', 401));
+    }
+
+    console.log('Uq', user);
+
+    const userpayLoad: UserPayLod = {
+      user_id: user._id,
+      user_name: user.name,
+      user_email: user.email,
+      roles: [user.role],
+    };
+    // 3) if everything ok ,send token to client
+    const token = signToken(userpayLoad);
+    res.status(200).json({
+      status: 'success',
+      message: '',
+      data: {
+        name: user.name,
+        email: user.email,
+        userRole: user.role,
+        userId: user._id,
+        accessToken: token,
+      },
+    });
   } catch (error) {
     next(error);
   }
 });
 
-export const protect = asyncHandler(
-  async (
-    req: Request & { user: { user_email: string; user_id: number; user_name: string; roles: string[] } },
-    res: Response,
-    next: NextFunction,
-  ) => {
-    const client: any = await new Promise((resolve, reject) => {});
-    // 1) getting token and check if its there
-    let token;
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-      token = req.headers.authorization.split(' ')[1];
-    }
-    // console.log('TOKEN ', token);
-    if (!token) {
-      return next(new AppError('You are not logged in! Please login to get access', 401));
-    }
-    // 2) Verification token
+const verifyAsync: any = promisify(jwt.verify);
 
-    jwt.verify(token, process.env.JWT_SECRET as string, async function (err, decoded: any) {
-      if (err || !decoded) {
-        return next(new AppError('Invalid token', 401));
-      }
-      const existsResult = await client.query({
-        text: 'SELECT * FROM users WHERE user_id = $1',
-        values: [decoded.user_id],
-      });
+export const protect = asyncHandler(async (req: Request & { user: UserPayLod }, res: Response, next: NextFunction) => {
+  let token;
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+  // console.log('TOKEN ', token);
+  if (!token) {
+    return next(new AppError('You are not logged in! Please login to get access', 401));
+  }
+  // 2) Verification token
 
-      if (existsResult.rows[0] && existsResult.rowCount && existsResult.rowCount > 0) {
-        req.user = {
-          user_id: existsResult.rows[0].user_id,
-          user_name: existsResult.rows[0].user_name,
-          user_email: existsResult.rows[0].user_email,
-          roles: existsResult.rows[0].roles,
-        };
-        return next();
-      } else {
-        return next(new AppError('Invalid token', 401));
-      }
-    });
-  },
-);
+  const decoded = await verifyAsync(token, process.env.JWT_SECRET as string);
+  // console.log('DECODED', decoded);
+
+  const currentUser = await User.findById(decoded.id);
+  // 3) Check if user still exist
+  if (!currentUser) {
+    return next(new AppError('The user belonging to this token does not exist.', 401));
+  }
+  // 4) Check if user changed password after the token was issued
+  if (currentUser.changedPasswordAfter(decoded.iat)) {
+    return next(new AppError('User recently changed password! Please login again.', 401));
+  }
+  req.user = {
+    user_id: currentUser._id,
+    roles: [currentUser.role],
+    user_email: currentUser.email,
+    user_name: currentUser.name,
+  };
+  // Grant access to protected route
+  next();
+});
 
 export const restrictTo = (roles: string[]) => {
   return (req: any, res: Response, next: NextFunction) => {
