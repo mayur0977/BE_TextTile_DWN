@@ -9,29 +9,6 @@ import { Product, ProductResponseModel } from '../model/product.model';
 import AppError from '../../shared/appError';
 import { allProductsMapped } from '../adapter/product.adapter';
 
-// // At query level
-// export const getAllProducts1 = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-//   try {
-//     const client = await pool.connect();
-//     const resData = await client.query(
-//       `SELECT product_id AS productId,
-//       product_name AS productName,
-//       product_description AS productDescription,
-//       price,
-//       stock_quantity AS stockQuantity,
-//       featured,
-//       json_build_object('categoryName', categories.category_name ,'categoryId', categories.category_id) as category
-//       FROM products
-//       LEFT JOIN categories on products.category_id = categories.category_id;`,
-//     );
-//     client.release();
-
-//     res.status(200).send(new ApiResponse(resData.rows, 'success'));
-//   } catch (error: any) {
-//     next(error);
-//   }
-// });
-
 // Adapter pattern
 export const getAllProducts = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   try {
