@@ -47,8 +47,6 @@ export const addTextileProductSchema: z.ZodType<Omit<ITextileProduct, 'productId
       .min(1, { message: 'Product unit is required' })
       .max(20, { message: 'Product unit must not exceed 20 characters' }),
 
-    image_url: z.string().url({ message: 'Image URL must be a valid URL' }),
-
     stock_quantity: z
       .number({ invalid_type_error: 'Stock quantity must be a number' })
       .nonnegative({ message: 'Stock quantity must be zero or a positive number' }),

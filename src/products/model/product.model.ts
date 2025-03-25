@@ -32,10 +32,7 @@ const textileProductSchema = new mongoose.Schema<ITextileProduct>(
       type: String,
       required: true,
     },
-    image_url: {
-      type: String,
-      required: true,
-    },
+
     stock_quantity: {
       type: Number,
       required: true,

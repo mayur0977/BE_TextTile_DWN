@@ -6,7 +6,7 @@ export interface ITextileProduct {
   color: string;
   price: number;
   unit: string;
-  image_url: string;
+
   stock_quantity: number;
   weight: number;
   dimensions: {
