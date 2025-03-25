@@ -9,8 +9,11 @@ import globalErrorHandler from './shared/errorHandler';
 
 import userRouter from './user/routes/user.routes';
 import mongoose from 'mongoose';
+import cors from 'cors';
 
 dotenv.config();
+
+const whitelist = ['http://localhost:3000'];
 
 const app: Express = express();
 
@@ -26,13 +29,25 @@ mongoose
   });
 const port = process.env.PORT_API || 5000;
 
+const corsOptions = {
+  origin: function (origin: any, callback: any) {
+    if (!origin || whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+};
+app.use(cors(corsOptions));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
 app.use('/products', productRouter);
 
-app.use('/user', userRouter);
+app.use('/api/user', userRouter);
 
 app.use((req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

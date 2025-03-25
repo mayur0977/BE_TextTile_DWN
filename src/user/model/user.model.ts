@@ -6,6 +6,7 @@ interface IUser extends Document {
   name: string;
   email: string;
   password: string;
+  phoneNumber: string;
   passwordConfirm: string;
   passwordChangedAt?: Date;
   role: string;
@@ -25,6 +26,12 @@ const userSchema = new mongoose.Schema<IUser>({
   email: {
     type: String,
     required: [true, 'Please provide your email.'],
+    unique: true,
+    lowercase: true, // convert data to lowercase
+  },
+  phoneNumber: {
+    type: String,
+    required: [true, 'Please provide your phone number.'],
     unique: true,
     lowercase: true, // convert data to lowercase
   },

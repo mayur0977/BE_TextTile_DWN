@@ -30,6 +30,7 @@ export const userSignup = asyncHandler(async (req: Request, res: Response, next:
       email: req.body.email,
       password: req.body.password,
       passwordConfirm: req.body.passwordConfirm,
+      phoneNumber: req.body.phoneNumber,
       role: req.body.role,
     });
     const userpayLoad: UserPayLod = {
@@ -52,7 +53,7 @@ export const userSignup = asyncHandler(async (req: Request, res: Response, next:
 
 export const userLogin = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
 
     // 1) check if email and password exist
     if (!email || !password) {
@@ -65,7 +66,9 @@ export const userLogin = asyncHandler(async (req: Request, res: Response, next: 
     if (!user || !(await user.correctPassword(password, user.password))) {
       return next(new AppError('Incorrect email or password!', 401));
     }
-
+    if (user.role !== role) {
+      return next(new AppError('You are not allowed to login, please select correct role', 401));
+    }
     console.log('Uq', user);
 
     const userpayLoad: UserPayLod = {
