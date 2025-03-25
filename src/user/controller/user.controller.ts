@@ -109,9 +109,9 @@ export const protect = asyncHandler(async (req: Request & { user: UserPayLod }, 
   // 2) Verification token
 
   const decoded = await verifyAsync(token, process.env.JWT_SECRET as string);
-  // console.log('DECODED', decoded);
+  console.log('DECODED', decoded);
 
-  const currentUser = await User.findById(decoded.id);
+  const currentUser = await User.findById(decoded.user_id);
   // 3) Check if user still exist
   if (!currentUser) {
     return next(new AppError('The user belonging to this token does not exist.', 401));
