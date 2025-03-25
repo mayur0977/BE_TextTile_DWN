@@ -59,11 +59,11 @@ const textileProductSchema = new mongoose.Schema<ITextileProduct>({
   },
   created_at: {
     type: Date,
-    default: Date.now,
+    default: new Date(),
   },
   updated_at: {
     type: Date,
-    default: Date.now,
+    default: new Date(),
   },
   tags: [
     {
@@ -103,7 +103,11 @@ const textileProductSchema = new mongoose.Schema<ITextileProduct>({
     type: String,
   },
 });
-
+// Middleware to update the 'updatedAt' field before each save
+textileProductSchema.pre('save', function (next) {
+  this.updated_at = new Date();
+  next();
+});
 // Create a model based on the schema
 const TextileProduct = mongoose.model('TextileProduct', textileProductSchema);
 

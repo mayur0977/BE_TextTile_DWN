@@ -13,8 +13,8 @@ const productRouter: Router = express.Router();
 
 productRouter.get('/', getAllProducts);
 productRouter.get('/:id', getProductByID);
-productRouter.post('/', validateProduct, protect, restrictTo(['admin']), AddProduct);
-productRouter.put('/:id', validateProduct, protect, restrictTo(['admin']), updateProduct);
-productRouter.delete('/:id', protect, restrictTo(['admin']), deleteProduct);
+productRouter.post('/', validateProduct, AddProduct);
+productRouter.put('/:id', validateProduct, protect, restrictTo(['manufacturer']), updateProduct);
+productRouter.delete('/:id', protect, restrictTo(['manufacturer']), deleteProduct);
 
 export default productRouter;
